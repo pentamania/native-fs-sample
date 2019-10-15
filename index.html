@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="pentamania">
+  <meta http-equiv="x-ua-compatible" content="IE=Edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>native fs サンプル</title>
+  <style type="text/css">
+    #logList {
+      background: gray;
+      color: white;
+      font-style: italic;
+    }
+  </style>
+</head>
+
+<body>
+  <textarea
+    id="content"
+    rows="12" cols="40"
+    placeholder="何か書き込む"
+  ></textarea>
+  <ul>
+    <li>ctrl+oで「ファイルを開く」</li>
+    <li>ctrl+sで「（上書き）保存」</li>
+    <li>ctrl+shift+sで「名前をつけて保存」</li>
+  </ul>
+  <h4>ログ</h4>
+  <ul id="logList"></ul>
+
+  <script defer>
+    const nativeFSSupported = (window.chooseFileSystemEntries != null);
+
+    /**
+     * ログ表示用
+     */
+    const LOG_LIMIT = 16;
+    const logList = document.getElementById("logList");
+    function addLog(line) {
+      li = document.createElement('li');
+      li.innerText = `${line} [${new Date().toString()}]`;
+      logList.appendChild(li);
+      if (LOG_LIMIT <= logList.childElementCount) {
+        logList.removeChild(logList.childNodes[0]);
+      }
+    }
+
+    /**
+     * 書き込み
+     */
+    async function writeFile(fileHandle, contents) {
+      // writer作成 (パーミッションが必要なときもある)
+      const writer = await fileHandle.createWriter();
+      // 空のファイルを用意 Make sure we start with an empty file
+      await writer.truncate(0);
+      // コンテンツを書き込む Write the full length of the contents
+      await writer.write(0, contents);
+      // ファイル閉じる Close the file and write the contents to disk
+      await writer.close();
+    }
+
+    /**
+     * 保存
+     * handleが存在する場合は上書き、無い場合は名前を付けて保存
+     * @return {FileSystemHandle|false} 失敗したらfalseを返す
+     */
+    async function saveFile(handle, contents) {
+      try {
+        if (!handle) {
+          // 名前を付けて保存
+          handle = await window.chooseFileSystemEntries({
+            type: 'saveFile', // "openFile"=def, "saveFile", "openDirectory"
+            accepts: [{
+              description: 'テキストファイル',
+              mimeTypes: ['text/plain'],
+              extensions: ['txt'],
+            }],
+          });
+        }
+        await writeFile(handle, contents);
+        return handle;
+      } catch (ex) {
+        const msg = '保存に失敗しました';
+        console.error(msg, ex);
+        return false;
+      }
+    };
+
+    /**
+     * @typedef {Object} FileOpenResult
+     * @property {FileSystemHandle} handle
+     * @property {String} text
+     */
+
+    /**
+     * ファイルオープン
+     * @return {FileOpenResult|false} 失敗したらfalseを返す
+     */
+    async function openFile() {
+      const result = {};
+      let handle;
+      let file;
+      try {
+        handle = await window.chooseFileSystemEntries({
+          accepts: [{
+            description: 'Text file',
+            mimeTypes: ['text/plain'],
+            extensions: ['txt'],
+          }],
+        });
+        file = await handle.getFile();
+        result["handle"] = handle;
+      } catch (ex) {
+        console.error("ファイル取得に失敗しました", ex);
+        return false;
+      }
+
+      // 内容取得
+      try {
+        const text = await file.text();
+        result["text"] = text;
+        return result;
+      } catch (ex) {
+        console.error("テキスト取得に失敗しました", ex);
+        return false;
+      }
+    }
+
+
+    /* mainスクリプト */
+    let globalFSHandle;
+    document.addEventListener('keydown', async (e)=> {
+
+      /* 名前を付けて保存 */
+      if (e.ctrlKey && e.shiftKey && e.code === 'KeyS') {
+        e.preventDefault();
+        if (!nativeFSSupported) {
+          alert("Native File Systemがサポートされてません");
+          return;
+        }
+
+        const fsHandle = await saveFile(null, document.getElementById('content').value);
+        if (fsHandle) {
+          globalFSHandle = fsHandle;
+          addLog("新規保存しました");
+        } else {
+          addLog("保存できませんでした");
+        }
+
+      /* （上書き）保存 */
+      } else if (e.ctrlKey && e.code === 'KeyS') {
+        e.preventDefault();
+        if (!nativeFSSupported) {
+          alert("Native File Systemがサポートされてません");
+          return;
+        }
+
+        const fsHandle = await saveFile(globalFSHandle, document.getElementById('content').value);
+        if (fsHandle) {
+          globalFSHandle = fsHandle;
+          addLog("保存しました");
+        } else {
+          addLog("保存できませんでした");
+        }
+
+      /* ファイルを開く */
+      } else if (e.ctrlKey && e.code === 'KeyO') {
+        e.preventDefault();
+        if (!nativeFSSupported) {
+          alert("Native File Systemがサポートされてません");
+          return;
+        }
+
+        const res = await openFile();
+        if (res) {
+          globalFSHandle = res.handle;
+          document.getElementById('content').value = res.text;
+          addLog("ファイルを開きました");
+        } else {
+          addLog("ファイルを開けませんでした");
+        }
+      }
+    });
+
+  </script>
+</body>
+</html>
