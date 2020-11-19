@@ -1,7 +1,7 @@
-import { openFile, saveFile } from "./nfs-utils.js";
+import { openFile, saveFile, isNativeFileSystemSupported } from "./nfs-utils.js";
 import { addLog } from "./logger.js";
 
-const nativeFSSupported = window.chooseFileSystemEntries != null;
+const nativeFSSupported = isNativeFileSystemSupported();
 let globalFSHandle;
 
 // キーボードイベント定義
@@ -60,3 +60,6 @@ document.addEventListener("keydown", async (e) => {
     }
   }
 });
+
+// サポート状況をログで表示
+addLog(`お使いのブラウザはNative File Systemをサポートして${(nativeFSSupported) ? "います！" : "いません..."}`);
