@@ -15,8 +15,8 @@ document.addEventListener("keydown", async (e) => {
     }
 
     const fsHandle = await saveFile(
-      null,
-      document.getElementById("content").value
+      document.getElementById("content").value,
+      null
     );
     if (fsHandle) {
       globalFSHandle = fsHandle;
@@ -33,8 +33,8 @@ document.addEventListener("keydown", async (e) => {
     }
 
     const fsHandle = await saveFile(
-      globalFSHandle,
-      document.getElementById("content").value
+      document.getElementById("content").value,
+      globalFSHandle
     );
     if (fsHandle) {
       globalFSHandle = fsHandle;

@@ -31,11 +31,11 @@ async function _writeFile(fileHandle, contents) {
 /**
  * ファイル保存処理
  *
- * @param {FileSystemFileHandle} [handle] 処理ハンドル：指定した場合は「上書き」、無い場合は「名前を付けて保存」
  * @param {string} contents 書き込み内容
+ * @param {FileSystemFileHandle} [handle] 処理ハンドル：指定した場合は「上書き」、無い場合は「名前を付けて保存」
  * @return {FileSystemHandle|false} 失敗時にfalseを返す
  */
-export async function saveFile(handle = null, contents) {
+export async function saveFile(contents, handle = null) {
   try {
     if (!handle) {
       // 名前を付けて保存
